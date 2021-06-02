@@ -1,6 +1,6 @@
 module KernelRidgePoissonRegression
 
-using Distances, Arpack, StatsBase, Optim, LinearAlgebra
+using Distances, Arpack, StatsBase, Optim, LinearAlgebra, Distributions
 
 export LaggedRegression, KRRModel, simulate, intensity, lmax, gcv, reml
 
