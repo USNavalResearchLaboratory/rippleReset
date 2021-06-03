@@ -41,6 +41,13 @@ struct KRRModel{K<:Kernel}
     reml
 end
 
+function StatsBase.predict(m::KRRModel,X=m.X)
+    K = k(X,m.X)
+    αp = U*Z*α[2:end]
+    exp.(α[1] .+ K*αp .+ Δ)
+end
+StatsBase.fitted(m::KRRModel) = predict(m)
+
 function intensity(m::KRRModel,X=m.X,k=m.k,U=m.U,Z=m.Z,α=m.α,Δ=m.Δ)
     K = k(X,m.X)
     αp = U*Z*α[2:end]
