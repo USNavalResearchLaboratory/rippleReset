@@ -43,8 +43,8 @@ end
 
 function StatsBase.predict(m::KRRModel,X=m.X)
     K = k(X,m.X)
-    αp = U*Z*α[2:end]
-    exp.(α[1] .+ K*αp .+ Δ)
+    αp = m.U*m.Z*m.α[2:end]
+    exp.(m.α[1] .+ K*αp .+ m.Δ)
 end
 StatsBase.fitted(m::KRRModel) = predict(m)
 
