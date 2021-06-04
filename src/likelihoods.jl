@@ -16,7 +16,7 @@ end
 
 function hessian(::Type{NormalLikelihood},Y,μ)
     N = length(μ)
-    ones(eltype(μ),N)
+    -ones(eltype(μ),N)
 end
 
 struct PoissonLikelihood <: Likelihood
