@@ -86,6 +86,39 @@ X = randn(N,D)
 
         m3 = fit(KRRModel,RBFKernel(1.0),ExponentialLikelihood,LogLink,X,Y3,1.0,1.0,verbose=true)
     end
+
+    @testset "Bernoulli data" begin
+        μ4 = link(LogitLink,η)
+        Y4 = rand.(Bernoulli.(μ4))
+
+        l4 = KRR.loglikelihood(BernoulliLikelihood,Y4,μ4)
+
+        @test KRR.gradient(BernoulliLikelihood,Y4,μ4) ≈ Y4 ./ μ4 .- (1 .- Y4) ./ (1 .- μ4)
+
+        @test KRR.gradient(LogitLink,η) ≈ exp.(η) ./ abs2.(1 .+ exp.(η))
+
+        @test KRR.hessian(BernoulliLikelihood,Y4,μ4) ≈ -Y4 ./ abs2.(μ4) .- (1 .- Y4) ./ abs2.(1 .- μ4)       
+        
+        @test KRR.hessian(LogitLink,η) ≈ exp.(η) ./ abs2.(1 .+ exp.(η)) .* (1 .- 2 ./ (1 .+ exp.(η)))
+
+        @test KRR.loglikelihood(KRRModel,BernoulliLikelihood,LogitLink,Y4,X,β) ≈ l4
+
+        g4 = KRR.gradient(KRRModel,BernoulliLikelihood,LogitLink,Y4,X,β)
+
+        μp4 = μ4 .* (1 .- μ4)
+        μpp4= μp4 .* (1 .- 2 * μ4)
+
+        fp4 = Y4 ./ μ4 .- (1 .- Y4) ./ (1 .- μ4)
+        fpp4= -Y4 ./ abs2.(μ4) .- (1 .- Y4)./abs2.(1 .- μ4)
+        
+        @test g4 ≈ X'*(fp4.*μp4)
+
+        h4 = KRR.hessian(KRRModel,BernoulliLikelihood,LogitLink,Y4,X,β)
+
+        @test h4 ≈ X' * Diagonal(abs2.(μp4) .* fpp4 .+ fp4 .* μpp4) * X
+
+        m4 = fit(KRRModel,RBFKernel(1.0),BernoulliLikelihood,LogitLink,X,Y4,1.0,1.0,verbose=true,rank=N-1)
+    end
 end
 
 
