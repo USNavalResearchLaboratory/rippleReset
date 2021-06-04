@@ -5,6 +5,7 @@ using Distances, Arpack, StatsBase, Optim, LinearAlgebra, Distributions
 export LaggedRegression, KRRModel, simulate, intensity, lmax, gcv, reml
 
 include("kernels.jl")
+include("likelihoods.jl")
 
 ####################
 # Model designs
