@@ -59,7 +59,7 @@ X = randn(N,D)
 
         h2 = KRR.hessian(KRRModel,PoissonLikelihood,LogLink,Y2,X,β)
 
-        @test h2 ≈ -M'Diagonal(μ2)*M
+        @test h2 ≈ -X'Diagonal(μ2)*X
 
         m2 = fit(KRRModel,RBFKernel(1.0),PoissonLikelihood,LogLink,X,Y2,1.0,1.0,verbose=true,rank=N-1)
     end
@@ -82,7 +82,7 @@ X = randn(N,D)
 
         h3 = KRR.hessian(KRRModel,ExponentialLikelihood,LogLink,Y3,X,β)
 
-        @test h3 ≈ M'Diagonal(-Y3 .* μ3)*M
+        @test h3 ≈ X'Diagonal(-Y3 .* μ3)*X
 
         m3 = fit(KRRModel,RBFKernel(1.0),ExponentialLikelihood,LogLink,X,Y3,1.0,1.0,verbose=true)
     end
