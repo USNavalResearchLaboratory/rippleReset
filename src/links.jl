@@ -1,4 +1,4 @@
-export IdentityLink, LogLink, LogitLink
+export IdentityLink, LogLink, LogitLink, link
 
 abstract type Link
 end
