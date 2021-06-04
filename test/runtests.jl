@@ -23,8 +23,10 @@ X = randn(N,D)
             KRR.loglikelihood(NormalLikelihood,Y1,μ1)
 
             @test KRR.gradient(NormalLikelihood,Y1,μ1) ≈ (Y1 .- μ1)
+            @test KRR.gradient(IdentityLink,η) ≈ ones(N)
 
             @test KRR.hessian(NormalLikelihood,Y1,μ1) ≈ -ones(N)
+            @test KRR.hessian(IdentityLink,η) ≈ zeros(N)
         end
 
         @testset "Poisson data" begin
@@ -34,8 +36,10 @@ X = randn(N,D)
             KRR.loglikelihood(PoissonLikelihood,Y2,μ2)
 
             @test KRR.gradient(PoissonLikelihood,Y2,μ2) ≈ Y2 ./ μ2 .- 1
+            @test KRR.gradient(LogLink,η) ≈ exp.(η)
 
             @test KRR.hessian(PoissonLikelihood,Y2,μ2) ≈ -Y2 ./ abs2.(μ2)
+            @test KRR.hessian(LogLink,η) ≈ exp.(η)
         end
 
         @testset "Exponential data" begin
