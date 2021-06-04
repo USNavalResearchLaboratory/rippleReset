@@ -1,4 +1,4 @@
-using Test, KernelRidgePoissonRegression, Random, Distributions
+using Test, KernelRidgePoissonRegression, Random, Distributions, LinearAlgebra
 
 const KRR = KernelRidgePoissonRegression
 
@@ -82,7 +82,7 @@ X = randn(N,D)
 
         h3 = KRR.hessian(KRRModel,ExponentialLikelihood,LogLink,Y3,X,β)
 
-        @test h3 ≈ X'Diagonal(-Y3 .* μ3)*X
+        @test h3 ≈ X'Diagonal(-Y3 ./ μ3)*X
 
         m3 = fit(KRRModel,RBFKernel(1.0),ExponentialLikelihood,LogLink,X,Y3,1.0,1.0,verbose=true)
     end
