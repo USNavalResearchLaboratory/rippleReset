@@ -16,7 +16,7 @@ end
 
 function hessian(::Type{NormalLikelihood},Y,μ)
     N = length(μ)
-    -Diagonal(I,N)
+    ones(eltype(μ),N)
 end
 
 struct PoissonLikelihood <: Likelihood
@@ -31,7 +31,7 @@ function gradient(::Type{PoissonLikelihood},Y,μ)
 end
 
 function hessian(::Type{PoissonLikelihood},Y,μ)
-    Diagonal(Y./ abs2.(μ))
+    -Y./ abs2.(μ)
 end
 
 struct ExponentialLikelihood <: Likelihood
@@ -46,7 +46,7 @@ function gradient(::Type{ExponentialLikelihood},Y,μ)
 end
 
 function hessian(::Type{ExponentialLikelihood},Y,μ)
-    Diagonal(-2Y ./ μ.^3 + inv.(abs2.(μ)))
+    inv.(abs2.(μ)) .- 2Y ./ μ.^3
 end
 
 
