@@ -6,6 +6,7 @@ export LaggedRegression, KRRModel, simulate, intensity, lmax, gcv, reml
 
 include("kernels.jl")
 include("likelihoods.jl")
+include("links.jl")
 
 ####################
 # Model designs
