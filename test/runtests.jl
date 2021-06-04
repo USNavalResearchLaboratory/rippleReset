@@ -34,7 +34,7 @@ X = randn(N,D)
 
         h1 = KRR.hessian(KRRModel,NormalLikelihood,IdentityLink,Y1,X,β)
 
-        @test h1 ≈ X'X
+        @test h1 ≈ -X'X
 
         m1 = fit(KRRModel,RBFKernel(1.0),NormalLikelihood,IdentityLink,X,Y1,1.0,1.0,verbose=true)
     end
