@@ -11,7 +11,12 @@ function StatsBase.loglikelihood(::Type{NormalLikelihood},Y,μ)
 end
 
 function gradient(::Type{NormalLikelihood},Y,μ)
-    -(Y .- μ)
+    Y .- μ
+end
+
+function hessian(::Type{NormalLikelihood},Y,μ)
+    N = length(μ)
+    -Diagonal(I,N)
 end
 
 struct PoissonLikelihood <: Likelihood
@@ -25,6 +30,10 @@ function gradient(::Type{PoissonLikelihood},Y,μ)
     Y./μ .- 1
 end
 
+function hessian(::Type{NormalLikelihood},Y,μ)
+    Diagonal(Y./ abs2.(μ))
+end
+
 struct ExponentialLikelihood <: Likelihood
 end
 
@@ -34,6 +43,10 @@ end
 
 function gradient(::Type{ExponentialLikelihood},Y,μ)
     Y ./ abs2.(μ) - inv.(μ)
+end
+
+function hessian(::Type{NormalLikelihood},Y,μ)
+    Diagonal(-2Y ./ μ.^3 + inv.(abs2.(μ)))
 end
 
 
