@@ -1,5 +1,7 @@
 using Test, KernelRidgePoissonRegression, Random, Distributions
 
+const KRR = KernelRidgePoissonRegression
+
 Random.seed!(83639)
 
 N = 10
@@ -13,17 +15,17 @@ X = randn(N,D)
 ## Normal data
 Y1 = rand.(Normal.(μ,1.0))
 
-loglikelihood(NormalLikelihood,Y1,link(IdentityLink,μ))
+KRR.loglikelihood(NormalLikelihood,Y1,link(IdentityLink,μ))
 
 ## Poisson data
 Y2 = rand.(Poisson.(exp.(μ)))
 
-loglikelihood(PoissonLikelihood,Y2,link(LogLink,μ))
+KRR.loglikelihood(PoissonLikelihood,Y2,link(LogLink,μ))
 
 ## Exponential data
 Y3 = rand.(Exponential.(exp.(μ)))
 
-loglikelihood(ExponentialLikelihood,Y3,link(LogLink,μ))
+KRR.loglikelihood(ExponentialLikelihood,Y3,link(LogLink,μ))
 
 
 m1 = fit(KRRModel,RBFKernel(1.0),NormalLikelihood,IdentityLink,X,Y1,1.0,1.0,verbose=true)
