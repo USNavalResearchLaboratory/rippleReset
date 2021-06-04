@@ -1,4 +1,4 @@
-export NormalLikelihood, PoissonLikelihood, ExponentialLikelihood
+export NormalLikelihood, PoissonLikelihood, ExponentialLikelihood, BernoulliLikelihood
 
 abstract type Likelihood
 end
@@ -49,4 +49,17 @@ function hessian(::Type{ExponentialLikelihood},Y,μ)
     inv.(abs2.(μ)) .- 2Y ./ μ.^3
 end
 
+struct BernoulliLikelihood <: Likelihood
+end
 
+function StatsBase.loglikelihood(::Type{BernoulliLikelihood},Y,μ)
+    sum(Y .* log.(μ) + (1 .- Y) .* log.(1 .- μ))
+end
+
+function gradient(::Type{BernoulliLikelihood},Y,μ)
+    Y ./ μ .- (1 .- Y) ./ (1 .- μ)
+end
+
+function hessian(::Type{BernoulliLikelihood},Y,μ)
+    -Y ./ abs2.(μ) .- (1 .- Y) ./ abs2.(1 .- μ)
+end
