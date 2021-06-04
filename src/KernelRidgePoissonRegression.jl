@@ -56,6 +56,11 @@ function intensity(m::KRRModel,X=m.X,k=m.k,U=m.U,Z=m.Z,α=m.α,Δ=m.Δ)
     exp.(α[1] .+ K*αp .+ Δ)
 end
 
+function StatsBase.loglikelihood(::Type{KRRModel},::Type{T},::Type{U},Y,M,α) where {T <: Likelihood, U <: Link}
+    η = M*α
+    loglikelihood(T,Y,link(U,η))
+end
+
 function StatsBase.loglikelihood(::Type{KRRModel},Y,M,α,Δ)
     μ = M*α .+ Δ
     dot(Y,μ) - sum(exp,μ)
