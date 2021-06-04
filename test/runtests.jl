@@ -12,23 +12,32 @@ X = randn(N,D)
 β = randn(D)
 η = X * β
 
-## Normal data
-μ1 = link(IdentityLink,η)
-Y1 = rand.(Normal.(μ1,1.0))
+@testset "Normal data" begin
+    μ1 = link(IdentityLink,η)
+    Y1 = rand.(Normal.(μ1,1.0))
 
-KRR.loglikelihood(NormalLikelihood,Y1,μ1)
+    KRR.loglikelihood(NormalLikelihood,Y1,μ1)
 
-## Poisson data
-μ2 = link(LogLink,η)
-Y2 = rand.(Poisson.(μ2))
+    @test KRR.gradient(NormalLikelihood,Y1,μ1) ≈ (Y1 .- μ1)
+end
 
-KRR.loglikelihood(PoissonLikelihood,Y2,μ2)
+@testset "Poisson data" begin
+    μ2 = link(LogLink,η)
+    Y2 = rand.(Poisson.(μ2))
 
-## Exponential data
-μ3 = link(LogLink,η)
-Y3 = rand.(Exponential.(μ3))
+    KRR.loglikelihood(PoissonLikelihood,Y2,μ2)
 
-KRR.loglikelihood(ExponentialLikelihood,Y3,μ3)
+    @test KRR.gradient(PoissonLikelihood,Y2,μ2) ≈ Y2 ./ μ2 .- 1
+end
+
+@testset "Exponential data" begin
+    μ3 = link(LogLink,η)
+    Y3 = rand.(Exponential.(μ3))
+
+    KRR.loglikelihood(ExponentialLikelihood,Y3,μ3)
+
+    @test KRR.gradient(ExponentialLikelihood,Y3,μ3) ≈ Y3 ./ abs2.(μ3) .- inv.(μ3)
+end
 
 m1 = fit(KRRModel,RBFKernel(1.0),NormalLikelihood,IdentityLink,X,Y1,1.0,1.0,verbose=true)
 m2 = fit(KRRModel,RBFKernel(1.0),PoissonLikelihood,LogLink,X,Y2,1.0,1.0,verbose=true,rank=N-1)
