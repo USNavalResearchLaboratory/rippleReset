@@ -32,6 +32,10 @@ X = randn(N,D)
         
         @test g1 ≈ X'*(Y1 .- μ1)
 
+        h1 = KRR.hessian(KRRModel,NormalLikelihood,IdentityLink,Y1,X,β)
+
+        @test h1 ≈ X'X
+
         m1 = fit(KRRModel,RBFKernel(1.0),NormalLikelihood,IdentityLink,X,Y1,1.0,1.0,verbose=true)
     end
 
@@ -53,6 +57,10 @@ X = randn(N,D)
 
         @test g2 ≈ X'*(Y2 .- μ2)
 
+        h2 = KRR.hessian(KRRModel,PoissonLikelihood,LogLink,Y2,X,β)
+
+        @test h2 ≈ -M'Diagonal(μ2)*M
+
         m2 = fit(KRRModel,RBFKernel(1.0),PoissonLikelihood,LogLink,X,Y2,1.0,1.0,verbose=true,rank=N-1)
     end
 
@@ -71,6 +79,10 @@ X = randn(N,D)
         g3 = KRR.gradient(KRRModel,ExponentialLikelihood,LogLink,Y3,X,β)
 
         @test g3 ≈ X'*(Y3./μ3 .- 1)
+
+        h3 = KRR.hessian(KRRModel,ExponentialLikelihood,LogLink,Y3,X,β)
+
+        @test h3 ≈ M'Diagonal(-Y3 .* μ3)*M
 
         m3 = fit(KRRModel,RBFKernel(1.0),ExponentialLikelihood,LogLink,X,Y3,1.0,1.0,verbose=true)
     end
