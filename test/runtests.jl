@@ -10,23 +10,25 @@ D = 5
 # Generate test data
 X = randn(N,D)
 β = randn(D)
-μ = X * β
+η = X * β
 
 ## Normal data
-Y1 = rand.(Normal.(μ,1.0))
+μ1 = link(IdentityLink,η)
+Y1 = rand.(Normal.(μ1,1.0))
 
-KRR.loglikelihood(NormalLikelihood,Y1,link(IdentityLink,μ))
+KRR.loglikelihood(NormalLikelihood,Y1,μ1)
 
 ## Poisson data
-Y2 = rand.(Poisson.(exp.(μ)))
+μ2 = link(LogLink,η)
+Y2 = rand.(Poisson.(μ2))
 
-KRR.loglikelihood(PoissonLikelihood,Y2,link(LogLink,μ))
+KRR.loglikelihood(PoissonLikelihood,Y2,μ2)
 
 ## Exponential data
-Y3 = rand.(Exponential.(exp.(μ)))
+μ3 = link(LogLink,η)
+Y3 = rand.(Exponential.(μ3))
 
-KRR.loglikelihood(ExponentialLikelihood,Y3,link(LogLink,μ))
-
+KRR.loglikelihood(ExponentialLikelihood,Y3,μ3)
 
 m1 = fit(KRRModel,RBFKernel(1.0),NormalLikelihood,IdentityLink,X,Y1,1.0,1.0,verbose=true)
 m2 = fit(KRRModel,RBFKernel(1.0),PoissonLikelihood,LogLink,X,Y2,1.0,1.0,verbose=true,rank=N-1)
