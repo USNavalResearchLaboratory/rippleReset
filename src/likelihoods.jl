@@ -30,7 +30,7 @@ function gradient(::Type{PoissonLikelihood},Y,μ)
     Y./μ .- 1
 end
 
-function hessian(::Type{NormalLikelihood},Y,μ)
+function hessian(::Type{PoissonLikelihood},Y,μ)
     Diagonal(Y./ abs2.(μ))
 end
 
@@ -45,7 +45,7 @@ function gradient(::Type{ExponentialLikelihood},Y,μ)
     Y ./ abs2.(μ) - inv.(μ)
 end
 
-function hessian(::Type{NormalLikelihood},Y,μ)
+function hessian(::Type{ExponentialLikelihood},Y,μ)
     Diagonal(-2Y ./ μ.^3 + inv.(abs2.(μ)))
 end
 
