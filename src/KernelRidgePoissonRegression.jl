@@ -66,6 +66,14 @@ function gradient(::Type{KRRModel},::Type{T},::Type{U},Y,M,α) where {T<: Likeli
     M'*(gradient(T,Y,link(U,η)) .* gradient(U,η))
 end
 
+function hessian(::Type{KRRModel},::Type{T},::Type{U},Y,M,α) where {T <: Likelihood, U <: Link}
+    η = M*α
+    μ = link(U,η)
+    
+    W = Diagonal(abs2.(gradient(U,η)) .* hessian(T,Y,μ) .+ gradient(T,Y,μ) .* hessian(U,η))
+    M'W*M
+end
+
 function StatsBase.loglikelihood(::Type{KRRModel},Y,M,α,Δ)
     μ = M*α .+ Δ
     dot(Y,μ) - sum(exp,μ)
