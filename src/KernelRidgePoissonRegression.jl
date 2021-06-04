@@ -61,6 +61,11 @@ function StatsBase.loglikelihood(::Type{KRRModel},::Type{T},::Type{U},Y,M,α) wh
     loglikelihood(T,Y,link(U,η))
 end
 
+function gradient(::Type{KRRModel},::Type{T},::Type{U},Y,M,α) where {T<: Likelihood, U <: Link}
+    η = M*α
+    M'*(gradient(T,Y,link(U,η)) .* gradient(U,η))
+end
+
 function StatsBase.loglikelihood(::Type{KRRModel},Y,M,α,Δ)
     μ = M*α .+ Δ
     dot(Y,μ) - sum(exp,μ)
