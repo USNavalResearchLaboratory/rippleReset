@@ -36,7 +36,7 @@ X = randn(N,D)
 
         @test h1 ≈ -X'X
 
-        m1 = fit(KRRModel,RBFKernel(1.0),NormalLikelihood,IdentityLink,X,Y1,1.0,1.0,verbose=true)
+        m1 = fit(KRRModel,NormalLikelihood,IdentityLink,RBFKernel(1.0),X,Y1,1.0,1.0,verbose=true)
     end
 
     @testset "Poisson data" begin
@@ -61,7 +61,7 @@ X = randn(N,D)
 
         @test h2 ≈ -X'Diagonal(μ2)*X
 
-        m2 = fit(KRRModel,RBFKernel(1.0),PoissonLikelihood,LogLink,X,Y2,1.0,1.0,verbose=true,rank=N-1)
+        m2 = fit(KRRModel,PoissonLikelihood,LogLink,RBFKernel(1.0),X,Y2,1.0,1.0,verbose=true,rank=N-1)
     end
 
     @testset "Exponential data" begin
@@ -84,7 +84,7 @@ X = randn(N,D)
 
         @test h3 ≈ X'Diagonal(-Y3 ./ μ3)*X
 
-        m3 = fit(KRRModel,RBFKernel(1.0),ExponentialLikelihood,LogLink,X,Y3,1.0,1.0,verbose=true)
+        m3 = fit(KRRModel,ExponentialLikelihood,LogLink,RBFKernel(1.0),X,Y3,1.0,1.0,verbose=true)
     end
 
     @testset "Bernoulli data" begin
@@ -117,7 +117,7 @@ X = randn(N,D)
 
         @test h4 ≈ X' * Diagonal(abs2.(μp4) .* fpp4 .+ fp4 .* μpp4) * X
 
-        m4 = fit(KRRModel,RBFKernel(1.0),BernoulliLikelihood,LogitLink,X,Y4,1.0,1.0,verbose=true,rank=N-1)
+        m4 = fit(KRRModel,BernoulliLikelihood,LogitLink,RBFKernel(1.0),X,Y4,1.0,1.0,verbose=true,rank=N-1)
     end
 end
 
