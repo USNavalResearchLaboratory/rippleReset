@@ -1,4 +1,4 @@
-using Test, KernelRidgePoissonRegression, Random, Distributions, LinearAlgebra
+using Test, KernelRidgePoissonRegression, Random, Distributions, LinearAlgebra, StatsBase
 
 const KRR = KernelRidgePoissonRegression
 
