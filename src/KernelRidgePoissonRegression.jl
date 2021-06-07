@@ -182,11 +182,11 @@ function StatsBase.fit(::Type{KRRModel},::Type{LikelihoodType},::Type{LinkType},
     f(α) = -loglikelihood(KRRModel,LikelihoodType,LinkType,Y,M,α) + 0.5 * γ * α'S*α
     
     function g!(G,α)        
-        G .= gradient(KRRModel,LikelihoodType,LinkType,Y,M,α)
+        G .= -gradient(KRRModel,LikelihoodType,LinkType,Y,M,α)
         G
     end
     function h!(H,α)
-        H .= hessian(KRRModel,LikelihoodType,LinkType,Y,M,α)
+        H .= -hessian(KRRModel,LikelihoodType,LinkType,Y,M,α)
     end
     opt = optimize(f,g!,h!,α0,opt_alg,Optim.Options(show_trace=verbose;optargs...))
     Optim.converged(opt) || @warn "Optimization failed to converge, γ=$γ, L = $(kernel.L)"
