@@ -43,10 +43,10 @@ struct KRRModel{LikelihoodType <: Likelihood, LinkType <: Link}
     reml
 end
 
-function StatsBase.predict(m::KRRModel,X=m.X)
-    K = k(X,m.X)
-    αp = m.U*m.Z*m.α[2:end]
-    exp.(m.α[1] .+ K*αp .+ m.Δ)
+function StatsBase.predict(m::KRRModel{LikelihoodType,LinkType},X=m.X) where {LikelihoodType <: Likelihood, LinkType <: Link}
+    K = m.k(X,m.X)
+    η = m.α[1] .+ K * m.U*m.Z*m.α[2:end]
+    link(LinkType,η)
 end
 StatsBase.fitted(m::KRRModel) = predict(m)
 
