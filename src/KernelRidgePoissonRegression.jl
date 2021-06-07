@@ -31,8 +31,8 @@ end
 ####################
 # Kernel Ridge Poisson Regression
 
-struct KRRModel{K<:Kernel}
-    k::K
+struct KRRModel{LikelihoodType <: Likelihood, LinkType <: Link}
+    k
     U
     Z
     X
@@ -136,6 +136,72 @@ function StatsBase.fit(::Type{KRRModel},k,X,Y,γ,Δ;
     dof = tr(M * (H\ (M'Diagonal(λ))))
     reml = -Optim.minimum(opt) + 0.5 * logabsdet(γ*P)[1] - 0.5 * logabsdet(H)[1] + 0.5 * size(T,2) * log(2π)
     KRRModel(k,U,Z,X,Y,Optim.minimizer(opt),Δ,dof,reml)
+end
+
+function StatsBase.fit(::Type{KRRModel},::Type{LikelihoodType},::Type{LinkType},
+                       kernel,
+                       X,Y,
+                       γ, # Regularization parameter
+                       Δ; # Scale parameter
+                       verbose=true,rank=size(X,1)-1,
+                       opt_alg = NewtonTrustRegion(),
+                       optargs...
+                       ) where {LikelihoodType <: Likelihood, LinkType <: Link}
+
+    N = size(X,1)
+
+    # Compute kernel matrix    
+    K = kernel(X)
+
+    # Reduced-rank eigenvalue decomposition
+    D,U = eigs(Symmetric(K),nev=rank)
+    D = Diagonal(D)
+
+    # Unpenalized intercept term
+    T = ones(N,1)
+    A = U'T
+    F = qr(A)
+
+    Z = (F.Q * Matrix(I,rank,rank))[:,2:end]
+
+    # Penalty matrix
+    P = Z'D*Z
+    # Expanded penalty matrix
+    S = [zeros(1,size(P,2)+1); zeros(size(P,1),1) P]
+
+    W = U*D*Z
+
+    # Model matrix
+    M = [T W]
+
+    # Initialize optimization
+    α0 = zeros(rank)
+
+    # Define optimization functions
+    # Target is the negative loglikelihood plus the penalty/prior term
+    f(α) = -loglikelihood(KRRModel,LikelihoodType,LinkType,Y,M,α) + 0.5 * γ * α'S*α
+    
+    function g!(G,α)        
+        G .= gradient(KRRModel,LikelihoodType,LinkType,Y,M,α)
+        G
+    end
+    function h!(H,α)
+        H .= hessian(KRRModel,LikelihoodType,LinkType,Y,M,α)
+    end
+    opt = optimize(f,g!,h!,α0,opt_alg,Optim.Options(show_trace=verbose;optargs...))
+    Optim.converged(opt) || @warn "Optimization failed to converge, γ=$γ, L = $(kernel.L)"
+
+    α = Optim.minimizer(opt)
+    η = M*α
+    μ = link(LinkType,η)
+
+    H = hessian(KRRModel,LikelihoodType,LinkType,Y,M,α)
+    # Not sure this DOF calculation is correct
+    dof = tr(M * (H\ (M'Diagonal(μ))))
+
+    reml = -Optim.minimum(opt) + 0.5*logabsdet(γ*P)[1] - 0.5*logabsdet(H)[1] + 0.5*size(T,2) * log(2π)
+
+    KRRModel{LikelihoodType,LinkType}(kernel,U,Z,X,Y,Optim.minimizer(opt),Δ,dof,reml)
 end
 
 function simulate(m::KRRModel,B=1,X = m.X,k=m.k,U=m.U,Z=m.Z,α=m.α,Δ=m.Δ)
