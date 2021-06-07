@@ -27,8 +27,8 @@ hessian(::Type{LogLink},η)  = exp.(η)
 struct LogitLink <: Link
 end
 
-link(::Type{LogitLink},η) = 1 ./ (1 .+ exp.(η))
-Base.inv(::Type{LogitLink},μ) = log.(μ ./ (1-μ))
+link(::Type{LogitLink},η) = 1 ./ (1 .+ exp.(-η))
+Base.inv(::Type{LogitLink},μ) = log.(μ ./ (1 .- μ))
 
 gradient(::Type{LogitLink},η) = link(LogitLink,η) .* (1 .- link(LogitLink,η))
 hessian(::Type{LogitLink},η) = gradient(LogitLink,η) .* (1 .- 2 .* link(LogitLink,η))
