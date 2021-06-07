@@ -105,7 +105,7 @@ X = randn(N,D)
 
         @test KRR.hessian(BernoulliLikelihood,Y4,μ4) ≈ -Y4 ./ abs2.(μ4) .- (1 .- Y4) ./ abs2.(1 .- μ4)       
         
-        @test KRR.hessian(LogitLink,η) ≈ exp.(η) ./ abs2.(1 .+ exp.(η)) .* (1 .- 2 ./ (1 .+ exp.(η)))
+        @test KRR.hessian(LogitLink,η) ≈ exp.(η) ./ abs2.(1 .+ exp.(η)) .* (1 .- 2 ./ (1 .+ exp.(-η)))
 
         @test KRR.loglikelihood(KRRModel,BernoulliLikelihood,LogitLink,Y4,X,β) ≈ l4
 
