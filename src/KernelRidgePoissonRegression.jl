@@ -198,7 +198,7 @@ function StatsBase.fit(::Type{KRRModel},::Type{LikelihoodType},::Type{LinkType},
 
     H = hessian(KRRModel,LikelihoodType,LinkType,Y,M,α)
     # Not sure this DOF calculation is correct
-    dof = tr(M * (H\ (M'Diagonal(μ))))
+    dof = rank # tr(M * (H\ (M'Diagonal(μ))))
 
     reml = -Optim.minimum(opt) + 0.5*logabsdet(γ*P)[1] - 0.5*logabsdet(H)[1] + 0.5*size(T,2) * log(2π)
 
