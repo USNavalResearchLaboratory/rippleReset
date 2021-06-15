@@ -109,14 +109,14 @@ function StatsBase.fit(::Type{KRRModel},::Type{LikelihoodType},::Type{LinkType},
 
     # Define optimization functions
     # Target is the negative loglikelihood plus the penalty/prior term
-    f(α) = -loglikelihood(KRRModel,LikelihoodType,LinkType,Y,M,α) + 0.5 * γ * α'S*α
+    f(α) = -loglikelihood(KRRModel,LikelihoodType,LinkType,Y,M,α) + 0.5 * γ * α'D*α
     
     function g!(G,α)        
-        G .= -gradient(KRRModel,LikelihoodType,LinkType,Y,M,α) + γ*S*α
+        G .= -gradient(KRRModel,LikelihoodType,LinkType,Y,M,α) + γ*D*α
         G
     end
     function h!(H,α)
-        H .= -hessian(KRRModel,LikelihoodType,LinkType,Y,M,α) + γ*S
+        H .= -hessian(KRRModel,LikelihoodType,LinkType,Y,M,α) + γ*D
     end
     opt = optimize(f,g!,h!,α0,opt_alg,Optim.Options(show_trace=verbose;optargs...))
     Optim.converged(opt) || @warn "Optimization failed to converge, γ=$γ, L = $(kernel.L)"
@@ -129,7 +129,7 @@ function StatsBase.fit(::Type{KRRModel},::Type{LikelihoodType},::Type{LinkType},
     # Not sure this DOF calculation is correct
     dof = rank # tr(M * (H\ (M'Diagonal(μ))))
 
-    reml = -Optim.minimum(opt) + 0.5*logabsdet(γ*P)[1] - 0.5*logabsdet(H)[1] + 0.5*size(T,2) * log(2π)
+    reml = -Optim.minimum(opt) + 0.5*logabsdet(γ*D)[1] - 0.5*logabsdet(H)[1] + 0.5*size(T,2) * log(2π)
 
     KRRModel{LikelihoodType,LinkType}(kernel,U,Z,X,Y,Optim.minimizer(opt),Δ,dof,reml)
 end
