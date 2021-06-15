@@ -154,7 +154,8 @@ function StatsBase.fit(::Type{KRRModel},::Type{LikelihoodType},::Type{LinkType},
     K = kernel(X)
 
     # Reduced-rank eigenvalue decomposition
-    D,U = eigs(Symmetric(K),nev=rank)
+    D,U = eigen(Symmetric(K),N-rank+1:N)
+    #D,U = eigs(Symmetric(K),nev=rank)
     D = Diagonal(D)
 
     # Unpenalized intercept term
