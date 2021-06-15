@@ -211,5 +211,7 @@ function simulate(m::KRRModel,B=1,X = m.X,k=m.k,U=m.U,Z=m.Z,α=m.α,Δ=m.Δ)
 end
 
 include("reml.jl")
+include("old.jl")
 
 end # module
+
