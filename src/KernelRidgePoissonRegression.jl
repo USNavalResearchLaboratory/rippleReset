@@ -129,9 +129,9 @@ function StatsBase.fit(::Type{KRRModel},::Type{LikelihoodType},::Type{LinkType},
     # Not sure this DOF calculation is correct
     dof = rank # tr(M * (H\ (M'Diagonal(μ))))
 
-    reml = -Optim.minimum(opt) + 0.5*logabsdet(γ*D)[1] - 0.5*logabsdet(H)[1] + 0.5*size(T,2) * log(2π)
+    reml = -Optim.minimum(opt) + 0.5*logabsdet(γ*D)[1] - 0.5*logabsdet(H)[1] + 0.5*length(η) * log(2π)
 
-    KRRModel{LikelihoodType,LinkType}(kernel,U,Z,X,Y,Optim.minimizer(opt),Δ,dof,reml)
+    KRRModel{LikelihoodType,LinkType}(kernel,U,D,X,Y,Optim.minimizer(opt),Δ,dof,reml)
 end
 
 function simulate(m::KRRModel,B=1,X = m.X,k=m.k,U=m.U,Z=m.Z,α=m.α,Δ=m.Δ)
