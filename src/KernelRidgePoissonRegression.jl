@@ -157,23 +157,9 @@ function StatsBase.fit(::Type{KRRModel},::Type{LikelihoodType},::Type{LinkType},
     D,U = eigen(Symmetric(K),N-rank+1:N)
     #D,U = eigs(Symmetric(K),nev=rank)
     D = Diagonal(D)
-
-    # Unpenalized intercept term
-    T = ones(N,1)
-    A = U'T
-    F = qr(A)
-
-    Z = (F.Q * Matrix(I,rank,rank))[:,2:end]
-
-    # Penalty matrix
-    P = Z'D*Z
-    # Expanded penalty matrix
-    S = [zeros(1,size(P,2)+1); zeros(size(P,1),1) P]
-
-    W = U*D*Z
-
+    
     # Model matrix
-    M = [T W]
+    M = U*D
 
     # Initialize optimization
     α0 = zeros(rank)
