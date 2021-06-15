@@ -143,7 +143,7 @@ function StatsBase.fit(::Type{KRRModel},::Type{LikelihoodType},::Type{LinkType},
                        X,Y,
                        γ, # Regularization parameter
                        Δ; # Scale parameter
-                       verbose=true,rank=size(X,1)-1,
+                       verbose=false,rank=size(X,1)-1,
                        opt_alg = NewtonTrustRegion(),
                        optargs...
                        ) where {LikelihoodType <: Likelihood, LinkType <: Link}
