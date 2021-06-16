@@ -85,6 +85,15 @@ reml(m::KRRModel) = m.reml
 abstract type RankChoice
 end
 
+"""
+Choose rank based on an eigenvalue threshold
+
+`RankThreshold(threshold)(K)` will return
+the eigendecomposition that corresponds to the 
+highest eigenvalues/vectors such that the sum of the 
+selected eigenvalues is at least `threshold` 
+times the sum of all the eigenvalues
+"""
 struct RankThreshold <: RankChoice
     threshold
 end
@@ -95,6 +104,13 @@ function (rt::RankThreshold)(K)
     Diagonal(λ[end-R+1:end]),U[:,end-R+1:end]
 end
 
+
+"""
+Choose rank explicitly
+
+`RankNumber(R)(K)` will return the R
+highest eigenvalues/vectors of K.
+"""
 struct RankNumber <: RankChoice
     R
 end
