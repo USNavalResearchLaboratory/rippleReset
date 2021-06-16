@@ -2,7 +2,8 @@ module KernelRidgePoissonRegression
 
 using Distances, Arpack, StatsBase, Optim, LinearAlgebra, Distributions
 
-export LaggedRegression, KRRModel, simulate, intensity, lmax, gcv, reml
+export LaggedRegression, KRRModel, simulate, intensity, lmax, gcv, reml,
+    RankNumber, RankThreshold, RankNumberEigs
 
 include("kernels.jl")
 include("likelihoods.jl")
@@ -81,12 +82,71 @@ lmax(m::KRRModel) = -sum(m.Y)
 gcv(m::KRRModel,scale=1.0) = nobs(m) * deviance(m)/(nobs(m) - scale*dof(m))^2
 reml(m::KRRModel) = m.reml
 
+abstract type RankChoice
+end
+
+"""
+Choose rank based on an eigenvalue threshold
+
+`RankThreshold(threshold)(K)` will return
+the eigendecomposition that corresponds to the 
+highest eigenvalues/vectors such that the sum of the 
+selected eigenvalues is at least `threshold` 
+times the sum of all the eigenvalues
+"""
+struct RankThreshold <: RankChoice
+    threshold
+end
+
+function (rt::RankThreshold)(K)
+    λ,U = eigen(Symmetric(K))
+    R = findfirst(x->x>rt.threshold,cumsum(reverse(λ))./sum(λ))
+    Diagonal(λ[end-R+1:end]),U[:,end-R+1:end]
+end
+
+
+"""
+Choose rank explicitly
+
+`RankNumber(R)(K)` will return the R
+highest eigenvalues/vectors of K.
+"""
+struct RankNumber <: RankChoice
+    R
+end
+
+function (rt::RankNumber)(K)
+    N = size(K,1)
+    λ,U = eigen(Symmetric(K),N-rt.R+1:N)
+    Diagonal(λ),U
+end
+
+"""
+Choose rank explicitly using iterative solver
+
+`RankNumberEigs(R)(K)` returns the R highest
+eigenvalues/vectors of K, computed using the 
+iterative solvers in the `eigs` method
+from Arpack. This can be more efficient for
+large eigenvalue problems.
+"""
+struct RankNumberEigs <: RankChoice
+    R
+end
+
+function (rt::RankNumberEigs)(K)
+    N = size(K,1)
+    λ,U = eigs(Symmetric(K),nev=rt.R)
+    Diagonal(λ),U
+end
+
 function StatsBase.fit(::Type{KRRModel},::Type{LikelihoodType},::Type{LinkType},
                        kernel,
                        X,Y,
                        γ, # Regularization parameter
-                       Δ; # Scale parameter
-                       verbose=false,rank=size(X,1)-1,
+                       Δ, # Scale parameter
+                       rankchoice::RankChoice;
+                       verbose=false,
                        opt_alg = NewtonTrustRegion(),
                        optargs...
                        ) where {LikelihoodType <: Likelihood, LinkType <: Link}
@@ -97,15 +157,14 @@ function StatsBase.fit(::Type{KRRModel},::Type{LikelihoodType},::Type{LinkType},
     K = kernel(X)
 
     # Reduced-rank eigenvalue decomposition
-    D,U = eigen(Symmetric(K),N-rank+1:N)
-    #D,U = eigs(Symmetric(K),nev=rank)
-    D = Diagonal(D)
+    D,U = rankchoice(K)
+    R = size(D,1)
     
     # Model matrix
     M = U*D
 
     # Initialize optimization
-    α0 = zeros(rank)
+    α0 = zeros(R)
 
     # Define optimization functions
     # Target is the negative loglikelihood plus the penalty/prior term
@@ -127,7 +186,7 @@ function StatsBase.fit(::Type{KRRModel},::Type{LikelihoodType},::Type{LinkType},
 
     H = hessian(KRRModel,LikelihoodType,LinkType,Y,M,α)
     # Not sure this DOF calculation is correct
-    dof = rank # tr(M * (H\ (M'Diagonal(μ))))
+    dof = R # tr(M * (H\ (M'Diagonal(μ))))
 
     reml = -Optim.minimum(opt) + 0.5*logabsdet(γ*D)[1] - 0.5*logabsdet(H)[1] + 0.5*length(η) * log(2π)
 
