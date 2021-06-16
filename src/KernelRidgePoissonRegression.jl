@@ -3,7 +3,7 @@ module KernelRidgePoissonRegression
 using Distances, Arpack, StatsBase, Optim, LinearAlgebra, Distributions
 
 export LaggedRegression, KRRModel, simulate, intensity, lmax, gcv, reml,
-    RankNumber, RankThreshold
+    RankNumber, RankThreshold, RankNumberEigs
 
 include("kernels.jl")
 include("likelihoods.jl")
@@ -118,6 +118,25 @@ end
 function (rt::RankNumber)(K)
     N = size(K,1)
     λ,U = eigen(Symmetric(K),N-rt.R+1:N)
+    Diagonal(λ),U
+end
+
+"""
+Choose rank explicitly using iterative solver
+
+`RankNumberEigs(R)(K)` returns the R highest
+eigenvalues/vectors of K, computed using the 
+iterative solvers in the `eigs` method
+from Arpack. This can be more efficient for
+large eigenvalue problems.
+"""
+struct RankNumberEigs <: RankChoice
+    R
+end
+
+function (rt::RankNumberEigs)(K)
+    N = size(K,1)
+    λ,U = eigs(Symmetric(K),nev=rt.R)
     Diagonal(λ),U
 end
 
