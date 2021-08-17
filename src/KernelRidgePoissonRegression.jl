@@ -184,13 +184,16 @@ function StatsBase.fit(::Type{KRRModel},::Type{LikelihoodType},::Type{LinkType},
     η = M*α
     μ = link(LinkType,η)
 
-    H = hessian(KRRModel,LikelihoodType,LinkType,Y,M,α)
+    # Negative Hessian of the joint probability
+    H = -hessian(KRRModel,LikelihoodType,LinkType,Y,M,α) + γ*D
     # Not sure this DOF calculation is correct
     dof = R # tr(M * (H\ (M'Diagonal(μ))))
 
-    reml = -Optim.minimum(opt) + 0.5*logabsdet(γ*D)[1] - 0.5*logabsdet(H)[1] + 0.5*length(η) * log(2π)
+    reml = loglikelihood(KRRModel,LikelihoodType,LinkType,Y,M,α) -0.5*length(Y)*log(2π) +
+        -0.5*γ*α'D*α + 0.5*logabsdet(γ*D)[1] - 0.5*length(η)*log(2π) +
+        -0.5*logabsdet(H)[1] + 0.5*length(η) * log(2π)
 
-    KRRModel{LikelihoodType,LinkType}(kernel,U,D,X,Y,Optim.minimizer(opt),Δ,dof,reml)
+    KRRModel{LikelihoodType,LinkType}(kernel,U,D,X,Y,α,Δ,dof,reml)
 end
 
 function simulate(m::KRRModel,B=1,X = m.X,k=m.k,U=m.U,Z=m.Z,α=m.α,Δ=m.Δ)
