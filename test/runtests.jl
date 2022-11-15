@@ -1,6 +1,6 @@
-using Test, KernelRidgePoissonRegression, Random, Distributions, LinearAlgebra, StatsBase
+using Test, RippleReset, Random, Distributions, LinearAlgebra, StatsBase
 
-const KRR = KernelRidgePoissonRegression
+const KRR = RippleReset
 
 Random.seed!(83639)
 

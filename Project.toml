@@ -1,4 +1,4 @@
-name = "KernelRidgePoissonRegression"
+name = "RippleReset"
 uuid = "c3b32293-7427-490f-9e31-2033290cd927"
 authors = ["William Kearney <William.Kearney.ctr@nrlssc.navy.mil>"]
 version = "0.1.0"
