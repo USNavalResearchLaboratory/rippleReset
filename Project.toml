@@ -1,7 +1,7 @@
 name = "RippleReset"
 uuid = "c3b32293-7427-490f-9e31-2033290cd927"
 authors = ["William Kearney <William.Kearney.ctr@nrlssc.navy.mil>"]
-version = "0.1.0"
+version = "0.2.0"
 
 [deps]
 Arpack = "7d9fca2a-8960-54d3-9f78-7d1dccf2cb97"
