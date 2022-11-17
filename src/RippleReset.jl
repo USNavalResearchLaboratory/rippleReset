@@ -37,6 +37,7 @@ function (m::LaggedRegression)(Ys::Vector{Vector{S}},xs::Vector{Vector{T}}) wher
 end
 
 struct RippleResetModel
+    design
     k
     U
     Z
@@ -56,15 +57,25 @@ lmax(m::RippleResetModel) = -sum(m.Y)
 gcv(m::RippleResetModel,scale=1.0) = nobs(m) * deviance(m)/(nobs(m) - scale*dof(m))^2
 reml(m::RippleResetModel) = m.reml
 
-function intensity(m::RippleResetModel,X=m.X,k=m.k,U=m.U,Z=m.Z,α=m.α,Δ=m.Δ)
+function intensity(m::RippleResetModel,X=m.X::Matrix,k=m.k,U=m.U,Z=m.Z,α=m.α,Δ=m.Δ)
     K = k(X,m.X)
     αp = U*Z*α[2:end]
     exp.(α[1] .+ K*αp .+ Δ)
 end
 
-function simulate(m::RippleResetModel,B=1,X = m.X,k=m.k,U=m.U,Z=m.Z,α=m.α,Δ=m.Δ)
+function intensity(m::RippleResetModel,Λ::Vector)
+    X,_ = m.design(zeros(Bool,length(Λ)),Λ)
+    intensity(m,X)
+end
+
+function simulate(m::RippleResetModel,X = m.X::Matrix,B=1,k=m.k,U=m.U,Z=m.Z,α=m.α,Δ=m.Δ)
     μ = intensity(m,X,k,U,Z,α,Δ)
     [rand.(Poisson.(μ)) for i in 1:B]
+end
+
+function simulate(m::RippleResetModel,Λ::Vector,B=1)
+    X,_ = m.design(zeros(Bool,length(Λ)),Λ)
+    simulate(m,X,B)
 end
 
 function StatsBase.loglikelihood(::Type{RippleResetModel},Y,M,α,Δ)
@@ -72,19 +83,26 @@ function StatsBase.loglikelihood(::Type{RippleResetModel},Y,M,α,Δ)
     dot(Y,μ) - sum(exp,μ)
 end
 
-function StatsBase.loglikelihood(m::RippleResetModel,X = m.X,Y = m.Y,k=m.k,U=m.U,Z=m.Z,α = m.α,Δ = m.Δ)
+function StatsBase.loglikelihood(m::RippleResetModel,X = m.X::Matrix,Y = m.Y,k=m.k,U=m.U,Z=m.Z,α = m.α,Δ = m.Δ)
     K = k(X,m.X)
     αp = U*Z*α[2:end]
     μ = α[1] .+ K*αp .+ Δ
     dot(Y,μ) - sum(exp,μ)
 end
 
-function StatsBase.fit(::Type{RippleResetModel},k,X,Y,γ,Δ;
+function StatsBase.loglikelihood(m::RippleResetModel,Λ::Vector,resets::Vector)
+    X,Y = m.design(resets,Λ)
+    loglikelihood(m,X,Y)
+end
+
+function StatsBase.fit(::Type{RippleResetModel},design,k,Λ,resets,γ,Δ;
                        rank=size(X,1),
                        verbose=false,
                        iterations=1000,
                        opt_alg=NewtonTrustRegion(),
                        allow_f_increases=false)
+    X,Y = design(resets,Λ)
+    
     N = size(X,1)
     K = k(X)
     #D,U = eigen(Symmetric(K),N-rank+1:N)
@@ -120,22 +138,7 @@ function StatsBase.fit(::Type{RippleResetModel},k,X,Y,γ,Δ;
     H = M'Diagonal(λ)*M + γ*S
     dof = tr(M * (H\ (M'Diagonal(λ))))
     reml = -Optim.minimum(opt) + 0.5 * logabsdet(γ*P)[1] - 0.5 * logabsdet(H)[1] + 0.5 * size(T,2) * log(2π)
-    RippleResetModel(k,U,Z,X,Y,Optim.minimizer(opt),Δ,dof,reml)
-end
-
-"""
-Fit a KRR model to the data (X,Y) with log timestep Δ
-
-Optimizes a penalized REML over the kernel length scale and regularization parameter
-"""
-function StatsBase.fit(::Type{RippleResetModel},X,Y,Δ;verbose=false,rank=5)
-    L0 = 1000.0
-    γ0 = 1.0
-    
-    f(θ) = -reml(fit(RippleResetModel,RBFKernel(exp(θ[1])),X,Y,exp(θ[2]),Δ,rank=rank,allow_f_increases=true,iterations=1000)) - θ[1] + 2*exp(θ[1])/L0 -θ[2] + 2*exp(θ[2])/γ0
-    opt = optimize(f,log.([L0/2;γ0/2]),NelderMead(),Optim.Options(show_trace=verbose))
-    θn = Optim.minimizer(opt)
-    fit(RippleResetModel,RBFKernel(exp(θn[1])),X,Y,exp(θn[2]),Δ,rank=rank,allow_f_increases=true)
+    RippleResetModel(design,k,U,Z,X,Y,Optim.minimizer(opt),Δ,dof,reml)
 end
 
 """
@@ -149,15 +152,13 @@ ridge regression.
 If you want to fit a model to multiple time series, pass in a vector of vectors for `Λ` and `resets`.
 """
 function StatsBase.fit(::Type{RippleResetModel},design::LaggedRegression,Λ,resets,Δ;verbose=false,rank=5)
-    X,Y = design(resets,Λ)
-    
     L0 = 1000.0
     γ0 = 1.0
     
-    f(θ) = -reml(fit(RippleResetModel,RBFKernel(exp(θ[1])),X,Y,exp(θ[2]),log(Δ),rank=rank,allow_f_increases=true,iterations=1000)) - θ[1] + 2*exp(θ[1])/L0 -θ[2] + 2*exp(θ[2])/γ0
+    f(θ) = -reml(fit(RippleResetModel,design,RBFKernel(exp(θ[1])),Λ,resets,exp(θ[2]),log(Δ),rank=rank,allow_f_increases=true,iterations=1000)) - θ[1] + 2*exp(θ[1])/L0 -θ[2] + 2*exp(θ[2])/γ0
     opt = optimize(f,log.([L0/2;γ0/2]),NelderMead(),Optim.Options(show_trace=verbose))
     θn = Optim.minimizer(opt)
-    fit(RippleResetModel,RBFKernel(exp(θn[1])),X,Y,exp(θn[2]),log(Δ),rank=rank,allow_f_increases=true)
+    fit(RippleResetModel,design,RBFKernel(exp(θn[1])),Λ,resets,exp(θn[2]),log(Δ),rank=rank,allow_f_increases=true)
 end
 
 
