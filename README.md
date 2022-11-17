@@ -52,7 +52,7 @@ julia> sites = ["WQS1406",
                 "MVCO02",
                 "MVCO05",
                 "LEO95"]
-julia> data = map(read_forcing,sites)
+julia> data = map(read_forcing,[joinpath(RippleResetForcingDirectory,site,"forcing.csv") for site in sites])
 ```
 
 The resulting `data` is a vector of tuples, where the first element is the ripple reset number time series for each site and the second element is the time series of resets. We can extract each of these by mapping `first` and `last` over the `data` vector
@@ -137,3 +137,54 @@ julia> bootstrap_models = [RippleReset.fit(RippleResetModel,LaggedRegression(k),
 ```
 
 The difference is because the model-based bootstrap uses the test forcing information  while the resampling bootstrap also has to resample the forcing data.
+
+## Example
+
+The bootstrap comparison tests used to generate the histograms in the Ripple Reset manuscript can be implemented as follows:
+
+```julia
+function comparison_test(null_site_forcing,test_site_forcing,B)
+    null_data = map(read_forcing,null_site_forcing)
+    null_lambda = map(first,null_data)
+    null_resets = map(last,null_data)
+    
+    test_data = map(read_forcing,test_site_forcing)
+    test_lambda = map(first,test_data)
+    test_resets = map(last,test_data)
+
+    design = LaggedRegression(9)
+    # Fit model to null data
+    null_model = RippleReset.fit(RippleResetModel,design,null_lambda,null_resets,3600.0,rank=5,verbose=false)
+    
+    # Fit model to test data
+    test_model = RippleReset.fit(RippleResetModel,design,test_lambda,test_resets,3600.0,rank=5,verbose=false)
+
+    # Likelihood difference on the test data.
+    ls0 = 2*(loglikelihood(test_model,test_lambda,test_resets) - loglikelihood(null_model,test_lambda,test_resets))
+
+    # Simulate from the null model with the null forcing
+    null_bootstraps = bootstrap_simulate(null_model,null_lambda,B)
+
+    # Simulate from the null model with the test forcing
+    test_bootstraps = bootstrap_simulate(null_model,test_lambda,B)
+    
+    # Fit models to the bootstrap samples with the null forcing
+    null_bootmodel = map(null_bootstraps) do reset
+        RippleReset.fit(RippleResetModel,design,null_lambda,reset,3600.0,rank=5,verbose=false)
+    end
+
+    test_bootmodel = map(test_bootstraps) do reset
+        RippleReset.fit(RippleResetModel,design,test_lambda,reset,3600.0,rank=5,verbose=false)
+    end
+
+    # Log-likelihood difference between the model fitted to the simulated data and the null model
+    ls = map(zip(null_bootmodel,test_bootmodel)) do (null_model,test_model)
+        2*(RippleReset.loglikelihood(test_model,test_lambda,test_reset) -
+           RippleReset.loglikelihood(null_model,test_lambda,test_reset))
+    end
+
+    ls0,ls
+end
+```
+
+The inputs are a list of forcing files for the null model, a list of forcing files for the test model and a number of bootstrap samples. The outputs are the difference in log likelihoods between the test and null models, `ls0` and the bootstrapped values of the difference in log likelihoods `ls`. The histograms in the figures are histograms of `ls` and the red line is the value of `ls0`.
