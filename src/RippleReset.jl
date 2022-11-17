@@ -1,6 +1,6 @@
 module RippleReset
 
-using Distances, Arpack, StatsBase, Optim, LinearAlgebra, Distributions
+using Distances, Arpack, StatsBase, Optim, LinearAlgebra, Distributions, CSV, DataFrames
 
 export LaggedRegression, RippleResetModel, simulate, intensity, lmax, gcv, reml
 
@@ -26,7 +26,15 @@ function lagmatrix(x,k)
     X
 end
 
-(m::LaggedRegression)(Y,x) = (lagmatrix(x,m.k),Y[m.k+1:end])
+function (m::LaggedRegression)(Y,x)
+    (lagmatrix(x,m.k),Y[m.k+1:end])
+end
+
+function (m::LaggedRegression)(Ys::Vector{Vector{S}},xs::Vector{Vector{T}}) where {S, T}
+    X = reduce(vcat,lagmatrix(x,m.k) for x in xs)
+    Y = reduce(vcat,Y[m.k+1:end] for Y in Ys)
+    X,Y
+end
 
 struct RippleResetModel
     k
@@ -130,10 +138,32 @@ function StatsBase.fit(::Type{RippleResetModel},X,Y,Δ;verbose=false,rank=5)
     fit(RippleResetModel,RBFKernel(exp(θn[1])),X,Y,exp(θn[2]),Δ,rank=rank,allow_f_increases=true)
 end
 
+"""
+    StatsBase.fit(::Type{RippleResetModel},design::LaggedRegression,Λ,resets,Δ;verbose=false,rank=5)
+
+Fit the ripple reset model with the LaggedRegression design to a ripple reset time series `Λ` and the
+corresponding vector of ripple `resets`. `Δ` is the time step in seconds. `verbose` turns on logging
+of the optimization routine and `rank` is the size of the reduced-rank approximation of the kernel
+ridge regression.
+
+If you want to fit a model to multiple time series, pass in a vector of vectors for `Λ` and `resets`.
+"""
+function StatsBase.fit(::Type{RippleResetModel},design::LaggedRegression,Λ,resets,Δ;verbose=false,rank=5)
+    X,Y = design(resets,Λ)
+    
+    L0 = 1000.0
+    γ0 = 1.0
+    
+    f(θ) = -reml(fit(RippleResetModel,RBFKernel(exp(θ[1])),X,Y,exp(θ[2]),log(Δ),rank=rank,allow_f_increases=true,iterations=1000)) - θ[1] + 2*exp(θ[1])/L0 -θ[2] + 2*exp(θ[2])/γ0
+    opt = optimize(f,log.([L0/2;γ0/2]),NelderMead(),Optim.Options(show_trace=verbose))
+    θn = Optim.minimizer(opt)
+    fit(RippleResetModel,RBFKernel(exp(θn[1])),X,Y,exp(θn[2]),log(Δ),rank=rank,allow_f_increases=true)
+end
+
 
 include("krr.jl")
 include("reml.jl")
+include("data.jl")
 
 
 end # module
-
