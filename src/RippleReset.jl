@@ -2,7 +2,8 @@ module RippleReset
 
 using Distances, Arpack, StatsBase, Optim, LinearAlgebra, Distributions, CSV, DataFrames
 
-export LaggedRegression, RippleResetModel, simulate, intensity, lmax, gcv, reml
+export LaggedRegression, RippleResetModel, simulate, intensity, lmax, gcv, reml,
+    bootstrap_simulate, bootstrap_resample
 
 include("kernels.jl")
 include("likelihoods.jl")
@@ -73,9 +74,37 @@ function simulate(m::RippleResetModel,X = m.X::Matrix,B=1,k=m.k,U=m.U,Z=m.Z,α=m
     [rand.(Poisson.(μ)) for i in 1:B]
 end
 
-function simulate(m::RippleResetModel,Λ::Vector,B=1)
+function simulate(m::RippleResetModel,Λ::Vector{Float64},B=1)
     X,_ = m.design(zeros(Bool,length(Λ)),Λ)
     simulate(m,X,B)
+end
+
+function simulate(m::RippleResetModel,Λ::Vector{Vector{Float64}},B=1)
+    Zs = map(Λ) do λ
+        simulate(m,λ,B)
+    end
+    # Invert the inner and outer dimensions of Zs
+    [collect(z) for z in zip(Zs...)]
+end
+
+function bootstrap_simulate(m::RippleResetModel,Λ::Vector{Float64},B=1)
+    k = m.design.k
+    
+    X,_ = m.design(zeros(Bool,length(Λ)),Λ)
+    vcat.(Ref(zeros(Int,k)),simulate(m,X,B))
+end
+
+function bootstrap_simulate(m::RippleResetModel,Λ::Vector{Vector{Float64}},B=1)
+    Zs = map(Λ) do λ
+        bootstrap_simulate(m,λ,B)
+    end
+    [collect(z) for z in zip(Zs...)]
+end
+
+function bootstrap_resample(design::LaggedRegression,Λ,resets,B=1)
+    X,Y = design(resets,Λ)
+    bs = [sample(1:length(Y),length(Y)) for i in 1:B]
+    [(X[b,:],Y[b]) for b in bs]
 end
 
 function StatsBase.loglikelihood(::Type{RippleResetModel},Y,M,α,Δ)
@@ -95,13 +124,20 @@ function StatsBase.loglikelihood(m::RippleResetModel,Λ::Vector,resets::Vector)
     loglikelihood(m,X,Y)
 end
 
-function StatsBase.fit(::Type{RippleResetModel},design,k,Λ,resets,γ,Δ;
+function StatsBase.fit(::Type{RippleResetModel},design,k,Λ::Vector,resets,γ,Δ;
+                       kwargs...)
+    X,Y = design(resets,Λ)
+
+    fit(RippleResetModel,design,k,X,Y,γ,Δ;kwargs...)
+end
+    
+function StatsBase.fit(::Type{RippleResetModel},design,k,X::Matrix,Y,γ,Δ;
                        rank=size(X,1),
                        verbose=false,
                        iterations=1000,
                        opt_alg=NewtonTrustRegion(),
                        allow_f_increases=false)
-    X,Y = design(resets,Λ)
+        
     
     N = size(X,1)
     K = k(X)
