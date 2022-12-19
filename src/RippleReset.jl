@@ -71,7 +71,7 @@ end
 
 function simulate(m::RippleResetModel,X = m.X::Matrix,B=1,k=m.k,U=m.U,Z=m.Z,α=m.α,Δ=m.Δ)
     μ = intensity(m,X,k,U,Z,α,Δ)
-    [rand.(Poisson.(μ)) for i in 1:B]
+    [zeros(m.design.k);[rand.(Poisson.(μ)) for i in 1:B]]
 end
 
 function simulate(m::RippleResetModel,Λ::Vector{Float64},B=1)
@@ -88,10 +88,8 @@ function simulate(m::RippleResetModel,Λ::Vector{Vector{Float64}},B=1)
 end
 
 function bootstrap_simulate(m::RippleResetModel,Λ::Vector{Float64},B=1)
-    k = m.design.k
-    
     X,_ = m.design(zeros(Bool,length(Λ)),Λ)
-    vcat.(Ref(zeros(Int,k)),simulate(m,X,B))
+    simulate(m,X,B)
 end
 
 function bootstrap_simulate(m::RippleResetModel,Λ::Vector{Vector{Float64}},B=1)
