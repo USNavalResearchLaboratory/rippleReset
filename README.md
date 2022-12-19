@@ -195,8 +195,8 @@ function comparison_test(null_site_forcing,test_site_forcing,B)
 
     # Log-likelihood difference between the model fitted to the simulated data and the null model
     ls = map(zip(null_bootmodel,test_bootmodel)) do (null_model,test_model)
-        2*(RippleReset.loglikelihood(test_model,test_lambda,test_reset) -
-           RippleReset.loglikelihood(null_model,test_lambda,test_reset))
+        2*(RippleReset.loglikelihood(test_model,test_lambda,test_resets) -
+           RippleReset.loglikelihood(null_model,test_lambda,test_resets))
     end
 
     ls0,ls
