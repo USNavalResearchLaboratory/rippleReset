@@ -201,6 +201,8 @@ function comparison_test(null_site_forcing,test_site_forcing,B)
 
     ls0,ls
 end
+
+julia> ls0,ls = comparison_test(null_site_forcing,test_site_forcing,10)
 ```
 
 The inputs are a list of forcing files for the null model, a list of forcing files for the test model and a number of bootstrap samples. The outputs are the difference in log likelihoods between the test and null models, `ls0` and the bootstrapped values of the difference in log likelihoods `ls`. The histograms in the figures are histograms of `ls` and the red line is the value of `ls0`.

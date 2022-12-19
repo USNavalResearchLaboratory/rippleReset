@@ -71,7 +71,7 @@ end
 
 function simulate(m::RippleResetModel,X = m.X::Matrix,B=1,k=m.k,U=m.U,Z=m.Z,α=m.α,Δ=m.Δ)
     μ = intensity(m,X,k,U,Z,α,Δ)
-    [zeros(m.design.k);[rand.(Poisson.(μ)) for i in 1:B]]
+    [[zeros(m.design.k);rand.(Poisson.(μ))] for i in 1:B]
 end
 
 function simulate(m::RippleResetModel,Λ::Vector{Float64},B=1)
