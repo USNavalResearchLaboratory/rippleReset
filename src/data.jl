@@ -9,6 +9,6 @@ resets.
 function read_forcing(forcing_file)
     D = CSV.read(forcing_file,DataFrame)
     Λ = D[!,:Λ]
-    Y = D[!,:reset2]
+    Y = Int.(D[!,:reset2])
     Λ,Y
 end
