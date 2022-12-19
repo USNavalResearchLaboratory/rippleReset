@@ -18,9 +18,11 @@ Next add the RippleReset package
 pkg> add RippleReset
 ```
 
-This should download the RippleReset repository and its dependencies.
+This should download the RippleReset repository and its dependencies. Then backspace to back out of package manager ("pkg" prompt) and get back to Julia ("julia" prompt)
 
 ## Usage
+
+Go to the directory where you want to run the model (not the source code directory). 
 
 First, load the package into Julia:
 
@@ -38,7 +40,7 @@ julia> lambda, resets = read_forcing("forcing.csv")
 
 where `lambda` is the time series of ripple reset number and `resets` is the time series identifying the ripple resets.
 
-If you want to train the model with more than one forcing file, you will want to load the data into two vectors of vectors, one for the ripple reset number and one for the resets. For example, in the RippleResetForcing repository layout, each site has a `forcing.csv` file in a dedicated directory, we can map `read_forcing` over the list of sites to load the data
+If you want to train the model with more than one forcing file, you will want to load the data into two vectors of vectors, one for the ripple reset number and one for the resets. For example, in the RippleResetForcing repository layout, each site has a `forcing.csv` file in a dedicated directory, we can map `read_forcing` over the list of sites to load the data. Note: Put the RippleResetForcingDirectory in quotes - it is a string.
 
 
 ```julia
@@ -74,19 +76,23 @@ Once you have the forcing data, you fit the model using something like the follo
     julia> m = RippleReset.fit(RippleResetModel,LaggedRegression(k),lambda,resets,timestep,rank=5,verbose=false)
 ```
 
-The first argument to `fit` is th `RippleResetModel` type (not a value with that type, but the type itself, simply `RippleResetModel`), which tells the `StatsBase.jl` backend that we are fitting a ripple reset model.
+The first argument to `fit` is the `RippleResetModel` type (not a value with that type, but the type itself, simply `RippleResetModel`), which tells the `StatsBase.jl` backend that we are fitting a ripple reset model.
 
 The second argument is a value of the `LaggedRegression` type, which tells you how many lagged time steps `k` to include in the regression. If you set `k = 9`, for example, the regression will be fit to the present time step and the past 9 time steps for 10 steps in total.
 
 The third and fourth arguments are the time series `lambda` and `resets` that you obtained in the previous step. These can be either individual vectors if you are fitting to a single time series or vectors of vectors if you are fitting to multiple time series.
 
-The fifth argument is the time step of the time series in seconds. If you are fitting a model to multiple time series, they should all have the same time step.
+The fifth argument is the time step of the time series in seconds. If you are fitting a model to multiple time series, they should all have the same time step. The units determine the units of the resulting intensity function (in this case, 1/s).
 
 Finally there are two keyword arguments. `rank` determines the size of the reduced-order model that is fit to the data. The default value is `5`. Higher values allow more flexibility in the model, but require more computational time. `verbose` displays logging information during the optimization. This is not usually necessary.
 
 ### Using the model
 
-With a fit model, you can compute the intensity function for a new ripple reset number time series
+With a fit model, you can compute the intensity function for a new ripple reset number time series. As a test, use the TREX8m forcing data: 
+
+```julia
+julia> test_lambda, _ = RippleReset.read_forcing("RippleResetForcing/TREX8m/forcing.csv")
+```
 
 ```julia
 julia> test_gamma = intensity(m,test_lambda)
@@ -100,7 +106,7 @@ You can also simulate time series of resets from the model using
 julia> test_sims = simulate(m,test_lambda,B)
 ```
 
-where `B` is the desired number of simulations. The result, `test_sims`, is a vector of vectors, with each element giving a simulated reset time series with `k` fewer time steps than the `test_lambda` time series for the same reason as above.
+where `B` is the desired number of simulations. The result, `test_sims`, is a vector of vectors, with each element giving a simulated reset time series with `k` fewer time steps than the `test_lambda` time series for the same reason as above. Typically, `B` is O(1000-10000) - this determines your resolution in your p-value (1/B). 
 
 Finally, you can compute the log likelihood of a data set under the model as
 
@@ -124,7 +130,7 @@ Finally, if you do not trust the model you fitted, you might want to avoid simul
 julia> resampled_data = bootstrap_resample(LaggedRegression(k),lambda,resets,B)
 ```
 
-Once you have the bootstrap samples, acquired by either `bootstrap_simulate` or `resampled_data`, you probably want to fit a new RippleResetModel to each of them. In the case of the `bootstrap_simulate` samples, you might do something like
+Once you have the bootstrap samples, acquired by either `bootstrap_simulate` or `bootstrap_resample`, you probably want to fit a new RippleResetModel to each of them. In the case of the `bootstrap_simulate` samples, you might do something like
 
 ```julia
 julia> bootstrap_models = [RippleReset.fit(RippleResetModel,LaggedRegression(k),test_lambda,reset,timestep,rank=5,verbose=false) for reset in bootstrap_resets]
@@ -136,31 +142,39 @@ while with `bootstrap_resample` samples, you want something like
 julia> bootstrap_models = [RippleReset.fit(RippleResetModel,LaggedRegression(k),lambda,reset,timestep,rank=5,verbose=false) for (lambda,reset) in resampled_data]
 ```
 
-The difference is because the model-based bootstrap uses the test forcing information  while the resampling bootstrap also has to resample the forcing data.
+The difference is because the model-based bootstrap uses the test forcing information while the resampling bootstrap also has to resample the forcing data.
 
 ## Example
 
 The bootstrap comparison tests used to generate the histograms in the Ripple Reset manuscript can be implemented as follows:
 
+DEMO
 ```julia
+null_site_forcing = ["RippleResetForcing/WQS1406/forcing.csv", "RippleResetForcing/WQS1409/forcing.csv"]
+test_site_forcing = ["RippleResetForcing/TREX8m/forcing.csv"]
+
+
+
 function comparison_test(null_site_forcing,test_site_forcing,B)
-    null_data = map(read_forcing,null_site_forcing)
+    null_data = map(RippleReset.read_forcing,null_site_forcing)
     null_lambda = map(first,null_data)
     null_resets = map(last,null_data)
     
-    test_data = map(read_forcing,test_site_forcing)
+    test_data = map(RippleReset.read_forcing,test_site_forcing)
     test_lambda = map(first,test_data)
     test_resets = map(last,test_data)
 
     design = LaggedRegression(9)
     # Fit model to null data
+    @info "Fitting model to null data"
     null_model = RippleReset.fit(RippleResetModel,design,null_lambda,null_resets,3600.0,rank=5,verbose=false)
     
     # Fit model to test data
+    @info "Fitting model to test data"
     test_model = RippleReset.fit(RippleResetModel,design,test_lambda,test_resets,3600.0,rank=5,verbose=false)
 
     # Likelihood difference on the test data.
-    ls0 = 2*(loglikelihood(test_model,test_lambda,test_resets) - loglikelihood(null_model,test_lambda,test_resets))
+    ls0 = 2*(RippleReset.loglikelihood(test_model,test_lambda,test_resets) - RippleReset.loglikelihood(null_model,test_lambda,test_resets))
 
     # Simulate from the null model with the null forcing
     null_bootstraps = bootstrap_simulate(null_model,null_lambda,B)
@@ -169,10 +183,12 @@ function comparison_test(null_site_forcing,test_site_forcing,B)
     test_bootstraps = bootstrap_simulate(null_model,test_lambda,B)
     
     # Fit models to the bootstrap samples with the null forcing
+    @info "Fitting model to bootstrap null data"
     null_bootmodel = map(null_bootstraps) do reset
         RippleReset.fit(RippleResetModel,design,null_lambda,reset,3600.0,rank=5,verbose=false)
     end
 
+    @info "Fitting model to bootstrap test data"
     test_bootmodel = map(test_bootstraps) do reset
         RippleReset.fit(RippleResetModel,design,test_lambda,reset,3600.0,rank=5,verbose=false)
     end
