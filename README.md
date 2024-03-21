@@ -4,9 +4,7 @@ This Julia package supplies code for fitting a kernel ridge Poisson regression t
 
 ## Installation
 
-#### HPC
-
-If you are working on HPC, RippleReset.jl is registered in the [NSEARegistry](https://gitlab.hpc.mil/William.Kearney.ctr/NSEARegistry). Follow the instructions there to add the NSEARegistry to your Julia registries list, and then open a Julia REPL and enter the package manager using
+RippleReset.jl has been developed and tested on Julia v1.7 through v1.10. Once you have a [working installation of Julia](https://julialang.org/downloads/), open a Julia REPL and enter the package manager using
 
 ```julia
 julia> ]
@@ -15,10 +13,12 @@ julia> ]
 Next add the RippleReset package
 
 ```julia
-pkg> add RippleReset
+pkg> add https://github.com/allisonpenko/RippleReset
 ```
 
-This should download the RippleReset repository and its dependencies. Then backspace to back out of package manager ("pkg" prompt) and get back to Julia ("julia" prompt)
+to install RippleReset.jl and its dependencies into your global environment. To install in an independent environment, see the Julia [Pkg documentation](https://pkgdocs.julialang.org/v1/) to set up a new environment, and then install as above.
+
+Press Backspace to back out of the package manager ("pkg" prompt) and get back to Julia ("julia" prompt).
 
 ## Usage
 
